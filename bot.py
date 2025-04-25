@@ -50,8 +50,13 @@ async def main():
         await app._update_queue.put(data)
         return web.Response()
 
+    async def root_handler(request):
+        return web.Response(text="Bot is running!", status=200)
+
     web_app = web.Application()
     web_app.router.add_post(f"/{BOT_TOKEN}", handler)
+    web_app.router.add_get("/", root_handler)
+    web_app.router.add_head("/", root_handler)
 
     runner = web.AppRunner(web_app)
     await runner.setup()
