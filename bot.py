@@ -45,11 +45,11 @@ async def main():
     await app.bot.set_webhook(url=f"{WEBHOOK_URL}")
     logger.info(f"✅ Webhook установлен: {WEBHOOK_URL}")
 
-async def handler(request):
-    data = await request.json()
-    update = Update.de_json(data, app.bot)
-    await app.update_queue.put(update)
-    return web.Response()
+    async def handler(request):
+        data = await request.json()
+        update = Update.de_json(data, app.bot)
+        await app.update_queue.put(update)
+        return web.Response()
 
     async def root_handler(request):
         return web.Response(text="Bot is running!", status=200)
