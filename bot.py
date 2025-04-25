@@ -3,7 +3,6 @@ import openai
 import logging
 from telegram import Update
 from telegram.ext import (
-    Application,
     ApplicationBuilder,
     CommandHandler,
     MessageHandler,
@@ -12,19 +11,20 @@ from telegram.ext import (
 )
 from aiohttp import web
 
-# Логгирование
+# Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Токены
+# Получение токенов и ключей из переменных окружения
 openai.api_key = os.getenv("OPENAI_API_KEY")
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # с токеном в конце
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Должен включать токен в конце
 
-# Обработчики
+# Обработчик команды /start
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я готов к работе.")
 
+# Обработчик текстовых сообщений
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     if not message:
@@ -47,7 +47,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await message.reply_text(reply)
 
-# Основной запуск
+# Основная функция запуска бота
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start_command))
@@ -56,7 +56,7 @@ async def main():
     await app.initialize()
     await app.bot.set_webhook(WEBHOOK_URL)
 
-    # aiohttp вебсервер
+    # Настройка aiohttp веб-сервера
     web_app = web.Application()
     web_app.add_routes([web.post(f"/{BOT_TOKEN}", app.webhook_handler())])
     runner = web.AppRunner(web_app)
