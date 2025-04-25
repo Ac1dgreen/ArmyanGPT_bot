@@ -1,7 +1,7 @@
 import os
 import logging
-import openai
 from aiohttp import web
+from openai import OpenAI
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, Application, CommandHandler, MessageHandler,
@@ -11,7 +11,10 @@ import asyncio
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Инициализация OpenAI клиента
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,7 +30,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if chat_type == "private" or f"@{bot_username}" in text:
         prompt = text.replace(f"@{bot_username}", "").strip()
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
             )
