@@ -7,6 +7,7 @@ from telegram.ext import (
     ApplicationBuilder, Application, CommandHandler, MessageHandler,
     ContextTypes, filters
 )
+import asyncio
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
@@ -65,9 +66,7 @@ async def main():
 
     logger.info("✅ Webhook слушает порт 10000")
     await app.start()
-    await app.updater.start_polling()
-    await app.updater.idle()
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
