@@ -1,30 +1,27 @@
 import os
-import openai
 import logging
+import openai
+from aiohttp import web
 from telegram import Update
 from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters,
+    ApplicationBuilder, Application, CommandHandler, MessageHandler,
+    ContextTypes, RequestHandler, filters
 )
-from aiohttp import web
 
-# Настройка логирования
+# 🔐 Токены
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# 🔧 Логгирование
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Получение токенов и ключей из переменных окружения
-openai.api_key = os.getenv("OPENAI_API_KEY")
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Должен включать токен в конце
-
-# Обработчик команды /start
+# 📥 /start
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Я готов к работе.")
+    await update.message.reply_text("Привет! Я готов отвечать, просто напиши!")
 
-# Обработчик текстовых сообщений
+# 📥 Ответ на обычные сообщения
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     if not message:
@@ -39,7 +36,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
+                messages=[{"role": "user", "content": prompt}]
             )
             reply = response.choices[0].message.content
         except Exception as e:
@@ -47,24 +44,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await message.reply_text(reply)
 
-# Основная функция запуска бота
+# 🌐 aiohttp веб-приложение
 async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app: Application = ApplicationBuilder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     await app.initialize()
     await app.bot.set_webhook(WEBHOOK_URL)
 
-    # Настройка aiohttp веб-сервера
+    # 💡 Используем PTB RequestHandler
+    async def handler(request):
+        return await RequestHandler(application=app).handle(request)
+
     web_app = web.Application()
-    web_app.add_routes([web.post(f"/{BOT_TOKEN}", app.webhook_handler())])
+    web_app.router.add_post(f"/{BOT_TOKEN}", handler)
+
     runner = web.AppRunner(web_app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", 10000)
     await site.start()
 
-    logger.info("✅ Webhook-сервер запущен на порту 10000")
+    logger.info("✅ Webhook-сервер запущен и слушает порт 10000")
     await app.start()
     await app.updater.start_polling()
     await app.updater.idle()
